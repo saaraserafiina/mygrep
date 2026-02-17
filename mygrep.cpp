@@ -7,6 +7,13 @@
 #include <string>
 using namespace std;
 
+struct Options {
+    bool showLineNumbers = false;
+    bool showOccurrences = false;
+    bool reverseSearch = false;
+    bool ignoreCase = false;
+
+};
 
 void toLower(string& s) {
 
@@ -16,6 +23,7 @@ void toLower(string& s) {
         x = tolower(x);
     }
 }
+
 
 vector<int> findSubString(const string& txt, const string& subtxt) {
 
@@ -52,17 +60,20 @@ vector<int> findSubString(const string& txt, const string& subtxt) {
 }
 
 
-void findSubstringFile(const string& subtxt, const string& filename ) {
+vector<pair<string, int>> findSubstringFile(const string& subtxt, const string& filename ) {
 
     // Takes two parameters from user input, first one is the subtext to look for and
-    // another is the filename. Function opens the file, searches for the subtext and prints
-    // the lines the text is found in. 
+    // another is the filename. Function opens the file, searches for the subtext and appends 
+    // the line in which the subtext was found into a vector. it also saves the row number
 
     ifstream file(filename);
+    int lineNum = 0;
+
+    vector<pair<string, int>> lines;
 
     if (!file) {
         cout << "Error opening file!" << endl;
-        return;
+        return lines;
     }
 
     string line;
@@ -72,6 +83,7 @@ void findSubstringFile(const string& subtxt, const string& filename ) {
 
     while (getline(file, line)) {
 
+        lineNum++;
         string lowerLine = line;
         toLower(lowerLine);
 
@@ -79,14 +91,39 @@ void findSubstringFile(const string& subtxt, const string& filename ) {
 
         if (!found.empty()) {
 
-            cout << line << endl;
+            lines.push_back({ line , lineNum});
         }
     }
 
     file.close();
 
-    return;
+    return lines;
 }
+
+Options parseOptions(const string& optString) {
+
+    // This function is meant to help processing the optional command line commands.
+    // It processes the user input (which is the optstring parameter) and
+    // according to it, it sets some of the optional functionalities as true,
+    // so that the program knows which acts the user wants to perform
+
+    Options opts;
+    if (optString.length() > 1 && optString[0] == '-' && optString[1] == 'o') {
+
+        for (int i = 2; i < optString.length(); i++) {
+
+            if (optString[i] == 'l') {
+                opts.showLineNumbers = true;
+
+            } if (optString[i] == 'o') {
+                opts.showOccurrences = true;
+            }
+        }
+    }
+
+    return opts;
+}
+
 
 
 int main(int argc, char*argv[])
@@ -95,7 +132,7 @@ int main(int argc, char*argv[])
 
     if (argc == 1) {
 
-    
+        
 
         string txt;
         string sub;
@@ -131,11 +168,44 @@ int main(int argc, char*argv[])
 
 
     else if (argc == 3) {
-        findSubstringFile(argv[1], argv[2]);
+        vector<pair<string, int>> fileLines = findSubstringFile(argv[1], argv[2]);
+        
+        for (const auto& entry : fileLines) {
+            cout << entry.first << endl;
+        }
+        
    }
 
 
+    else if (argc == 4) {
+
+        Options opts = parseOptions(argv[1]);
 
 
-    return 0;
-}
+        vector<pair<string, int>> fileLines = findSubstringFile(argv[2], argv[3]);
+
+        if (opts.showLineNumbers) {
+            for (const auto& entry : fileLines) {
+                cout << entry.second << ": " << entry.first << endl;
+            }
+        }
+
+        if (opts.showOccurrences) {
+
+            if (!opts.showLineNumbers) {
+
+            for (const auto& entry : fileLines) {
+                cout << entry.first << endl;
+            }
+            }
+
+            cout << "Occurrences of lines containing " << argv[2] << ": " << fileLines.size() << endl;
+        }
+
+
+
+    }
+
+        return 0;
+
+    }
