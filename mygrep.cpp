@@ -29,13 +29,16 @@ vector<int> findSubString(const string& txt, const string& subtxt) {
 
     // Function takes two strings as parameters
     // It finds out whether or not the subtxt string is
-    // a part of the larger txt string. 
+    // a part of the larger txt string. Can also be
+    // reused in the file function
 
     vector<int> indexes;
 
 
     int n = txt.length();
     int m = subtxt.length();
+
+    
 
     if (m == 0 || n < m) return indexes;
 
@@ -60,11 +63,15 @@ vector<int> findSubString(const string& txt, const string& subtxt) {
 }
 
 
-vector<pair<string, int>> findSubstringFile(const string& subtxt, const string& filename ) {
+vector<pair<string, int>> findSubstringFile(const string& subtxt, const string& filename, bool ignoreCase, bool reverse) {
 
     // Takes two parameters from user input, first one is the subtext to look for and
-    // another is the filename. Function opens the file, searches for the subtext and appends 
-    // the line in which the subtext was found into a vector. it also saves the row number
+    // another is the filename. Takes also two bool 
+    // parameters. Other one is the ignoreCase and other one is reverse. 
+    // They tell whether or not the function ignores caps lock letters or does a reverse search.
+    // Function opens the file, searches for the subtext and appends 
+    // the line in which the subtext was found into a vector. it also saves the row number. 
+
 
     ifstream file(filename);
     int lineNum = 0;
@@ -79,19 +86,34 @@ vector<pair<string, int>> findSubstringFile(const string& subtxt, const string& 
     string line;
     string lowerSub = subtxt;
 
-    toLower(lowerSub);
+    if (ignoreCase == true) { // if ignorecase, turn subtxt to lowercase
+        toLower(lowerSub);
+    }
+
 
     while (getline(file, line)) {
 
         lineNum++;
         string lowerLine = line;
-        toLower(lowerLine);
+        if (ignoreCase) {
 
-        vector<int> found = findSubString(lowerLine, lowerSub);
+            toLower(lowerLine);
+        }
+
+        vector<int> found = findSubString(lowerLine, lowerSub); // using the findsubstring function
+
+        if (!reverse) {
 
         if (!found.empty()) {
 
             lines.push_back({ line , lineNum});
+        }
+        }
+        else if (reverse) { // if reverse is true, appending the lines not containing the subtxt into the vector
+
+            if (found.empty()) {
+                lines.push_back({ line, lineNum });
+            }
         }
     }
 
@@ -99,6 +121,9 @@ vector<pair<string, int>> findSubstringFile(const string& subtxt, const string& 
 
     return lines;
 }
+
+
+
 
 Options parseOptions(const string& optString) {
 
@@ -108,6 +133,7 @@ Options parseOptions(const string& optString) {
     // so that the program knows which acts the user wants to perform
 
     Options opts;
+
     if (optString.length() > 1 && optString[0] == '-' && optString[1] == 'o') {
 
         for (int i = 2; i < optString.length(); i++) {
@@ -117,6 +143,14 @@ Options parseOptions(const string& optString) {
 
             } if (optString[i] == 'o') {
                 opts.showOccurrences = true;
+            }
+
+            if (optString[i] == 'i') {
+                opts.ignoreCase = true;
+            }
+
+            if (optString[i] == 'r') {
+                opts.reverseSearch = true;
             }
         }
     }
@@ -143,11 +177,6 @@ int main(int argc, char*argv[])
         cout << "Give a search string: ";
         getline(cin, sub);
 
-
-        toLower(txt);
-        toLower(sub);
-
-
         vector<int> found = findSubString(txt, sub);
 
         if (found.empty()) {
@@ -168,7 +197,9 @@ int main(int argc, char*argv[])
 
 
     else if (argc == 3) {
-        vector<pair<string, int>> fileLines = findSubstringFile(argv[1], argv[2]);
+
+
+        vector<pair<string, int>> fileLines = findSubstringFile(argv[1], argv[2], false, false);
         
         for (const auto& entry : fileLines) {
             cout << entry.first << endl;
@@ -181,28 +212,23 @@ int main(int argc, char*argv[])
 
         Options opts = parseOptions(argv[1]);
 
+        
+        vector<pair<string, int>> fileLines = findSubstringFile(argv[2], argv[3], opts.ignoreCase, opts.reverseSearch);
 
-        vector<pair<string, int>> fileLines = findSubstringFile(argv[2], argv[3]);
+        
 
-        if (opts.showLineNumbers) {
-            for (const auto& entry : fileLines) {
-                cout << entry.second << ": " << entry.first << endl;
+        for (const auto& entry : fileLines) {
+
+            if (opts.showLineNumbers) {
+                cout << entry.second << ": ";
             }
+
+            cout << entry.first << endl;
         }
 
         if (opts.showOccurrences) {
-
-            if (!opts.showLineNumbers) {
-
-            for (const auto& entry : fileLines) {
-                cout << entry.first << endl;
-            }
-            }
-
-            cout << "Occurrences of lines containing " << argv[2] << ": " << fileLines.size() << endl;
+            cout << "\nOccurrences of lines containing " << argv[2] << ": " << fileLines.size() << endl;
         }
-
-
 
     }
 
