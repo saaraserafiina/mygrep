@@ -5,9 +5,13 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <stdexcept>
 using namespace std;
 
 struct Options {
+
+    // struct that contains the options
+
     bool showLineNumbers = false;
     bool showOccurrences = false;
     bool reverseSearch = false;
@@ -79,8 +83,8 @@ vector<pair<string, int>> findSubstringFile(const string& subtxt, const string& 
     vector<pair<string, int>> lines;
 
     if (!file) {
-        cout << "Error opening file!" << endl;
-        return lines;
+        throw - 1;
+
     }
 
     string line;
@@ -130,7 +134,8 @@ Options parseOptions(const string& optString) {
     // This function is meant to help processing the optional command line commands.
     // It processes the user input (which is the optstring parameter) and
     // according to it, it sets some of the optional functionalities as true,
-    // so that the program knows which acts the user wants to perform
+    // so that the program knows which acts the user wants to perform. 
+    // if the user gives wrong option arguments, an error is thrown
 
     Options opts;
 
@@ -138,100 +143,166 @@ Options parseOptions(const string& optString) {
 
         for (int i = 2; i < optString.length(); i++) {
 
-            if (optString[i] == 'l') {
+
+            switch (optString[i]) {
+
+            case 'l':
                 opts.showLineNumbers = true;
+                break;
 
-            } if (optString[i] == 'o') {
+            case 'o':
                 opts.showOccurrences = true;
-            }
+                break;
 
-            if (optString[i] == 'i') {
+            case 'i':
                 opts.ignoreCase = true;
-            }
+                break;
 
-            if (optString[i] == 'r') {
+            case 'r':
                 opts.reverseSearch = true;
+                break;
+
+
+            default:
+                throw invalid_argument(
+                    string("Invalid option -- '") + optString[i] + "'"
+                );
             }
         }
+    }
+
+    else {
+        throw invalid_argument("invalid option format");
     }
 
     return opts;
 }
 
-
-
-int main(int argc, char*argv[])
-
-{
-
-    if (argc == 1) {
-
         
 
-        string txt;
-        string sub;
 
-        cout << "Give a string from which to search for: ";
-        getline(cin, txt);
+  int main(int argc, char* argv[])
 
-        cout << "Give a search string: ";
-        getline(cin, sub);
+      // main function. handles all the cases of different amounts of input arguments
+      // also error handling
+    {
 
-        vector<int> found = findSubString(txt, sub);
+    try {
 
-        if (found.empty()) {
-            cout << '"' << sub << "\" NOT found in \""
-                << txt << '"' << endl;
-    }
+        if (argc == 1) {
 
-        else {
-            for (int i = 0; i < found.size(); i++) {
-        
-                cout << '"' << sub << "\" found in \"" << txt << "\" in position " << found[i] << endl;
+            // if argc == 1, which means that the user only ran the program, the user can input
+            // a string and a substring
+
+            string txt;
+            string sub;
+
+            cout << "Give a string from which to search for: ";
+            getline(cin, txt);
+
+            cout << "Give a search string: ";
+            getline(cin, sub);
+
+            vector<int> found = findSubString(txt, sub); // searching the substring
+
+            if (found.empty()) { // if it is not found
+                cout << '"' << sub << "\" NOT found in \""
+                    << txt << '"' << endl;
+            }
+
+            else {
+                for (int i = 0; i < found.size(); i++) { // if it is found, program prints the position
+
+                    cout << '"' << sub << "\" found in \"" << txt << "\" in position " << found[i] << endl;
 
                 }
 
             }
-
+                    
         }
 
+        else if (argc == 3) {
 
-    else if (argc == 3) {
+            // if arcg == 3, it means that the user has input a substring and a file 
 
+            vector<pair<string, int>> fileLines =
+                findSubstringFile(argv[1], argv[2], false, false); // using the file function
 
-        vector<pair<string, int>> fileLines = findSubstringFile(argv[1], argv[2], false, false);
-        
-        for (const auto& entry : fileLines) {
-            cout << entry.first << endl;
-        }
-        
-   }
-
-
-    else if (argc == 4) {
-
-        Options opts = parseOptions(argv[1]);
-
-        
-        vector<pair<string, int>> fileLines = findSubstringFile(argv[2], argv[3], opts.ignoreCase, opts.reverseSearch);
-
-        
-
-        for (const auto& entry : fileLines) {
-
-            if (opts.showLineNumbers) {
-                cout << entry.second << ": ";
+            for (const auto& entry : fileLines) {
+                cout << entry.first << endl;
             }
 
-            cout << entry.first << endl;
+            if (fileLines.empty()) {
+                cout << '"' << argv[1] << "\" NOT found in \""
+                    << argv[2] << '"' << endl;
+                return 1;  
+            }
         }
 
-        if (opts.showOccurrences) {
-            cout << "\nOccurrences of lines containing " << argv[2] << ": " << fileLines.size() << endl;
+        else if (argc == 4) {
+
+            // if argc == 4, user has also chosen options
+
+            Options opts = parseOptions(argv[1]); // parsing the options from user input
+
+            vector<pair<string, int>> fileLines =
+                findSubstringFile(argv[2], argv[3],
+                    opts.ignoreCase,
+                    opts.reverseSearch);
+
+            for (const auto& entry : fileLines) {
+
+                if (opts.showLineNumbers) {
+                    cout << entry.second << ": ";
+                }
+
+                cout << entry.first << endl;
+            }
+
+            if (opts.showOccurrences) {
+                cout << "\nOccurrences of lines containing "
+                    << argv[2] << ": "
+                    << fileLines.size() << endl;
+            }
+
+            if (fileLines.empty()) {
+                return 1;  
+            }
         }
 
+        else {
+            // if the option input is invalid
+            throw - 2;
+        }
+        
+        return 0;  
     }
 
-        return 0;
+
+    // catching exeptions
+
+    catch (int exeptionNumber) {
+
+        cerr << "An exeption occurred. Exeption Nr. " << exeptionNumber << endl;
+
+        if (exeptionNumber == -1 && argc >= 3) {
+            cerr << "Could not find out the size of file \"" << argv[argc - 1] << "\"" << endl;
+        }
+
+        else if (exeptionNumber == -2) {
+            cerr << "Wrong amount of arguments." << endl;
+            cerr << "Usage: mygrep [-olori] PATTERN FILE" << endl;
+
+        }
+
+        return 2;
+    }
+
+    catch (const invalid_argument& e) {
+        cerr << "mygrep: " << e.what() << endl;
+        cerr << "Usage: mygrep [-olori] PATTERN FILE" << endl;
+        return 2;
+
+        }
 
     }
